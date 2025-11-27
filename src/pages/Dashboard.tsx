@@ -3,13 +3,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, LogOut, Mail, CheckSquare, Calendar, FileText, Settings } from "lucide-react";
+import { Loader2, LogOut, Mail, CheckSquare, Calendar, FileText, Settings, BarChart, GitBranch, AlertCircle } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import EmailSummaries from "@/components/dashboard/EmailSummaries";
 import TaskManager from "@/components/dashboard/TaskManager";
 import MeetingScheduler from "@/components/dashboard/MeetingScheduler";
 import DailySummary from "@/components/dashboard/DailySummary";
 import SettingsPanel from "@/components/dashboard/SettingsPanel";
+import AnalyticsDashboard from "@/components/dashboard/AnalyticsDashboard";
+import RequestRouter from "@/components/dashboard/RequestRouter";
+import EscalationMonitor from "@/components/dashboard/EscalationMonitor";
 
 const Dashboard = () => {
   const [user, setUser] = useState<any>(null);
@@ -79,8 +82,20 @@ const Dashboard = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8">
-        <Tabs defaultValue="emails" className="w-full">
-          <TabsList className="grid w-full grid-cols-5 mb-8">
+        <Tabs defaultValue="analytics" className="w-full">
+          <TabsList className="grid w-full grid-cols-8 mb-8">
+            <TabsTrigger value="analytics">
+              <BarChart className="mr-2 h-4 w-4" />
+              Analytics
+            </TabsTrigger>
+            <TabsTrigger value="routing">
+              <GitBranch className="mr-2 h-4 w-4" />
+              Routing
+            </TabsTrigger>
+            <TabsTrigger value="escalations">
+              <AlertCircle className="mr-2 h-4 w-4" />
+              Escalations
+            </TabsTrigger>
             <TabsTrigger value="emails">
               <Mail className="mr-2 h-4 w-4" />
               Emails
@@ -102,6 +117,18 @@ const Dashboard = () => {
               Settings
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="analytics" className="space-y-4">
+            <AnalyticsDashboard userId={user?.id} />
+          </TabsContent>
+
+          <TabsContent value="routing" className="space-y-4">
+            <RequestRouter />
+          </TabsContent>
+
+          <TabsContent value="escalations" className="space-y-4">
+            <EscalationMonitor />
+          </TabsContent>
 
           <TabsContent value="emails" className="space-y-4">
             <EmailSummaries userId={user?.id} />
