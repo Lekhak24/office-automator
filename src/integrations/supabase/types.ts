@@ -14,6 +14,80 @@ export type Database = {
   }
   public: {
     Tables: {
+      analytics_metrics: {
+        Row: {
+          auto_classified: number | null
+          auto_replied: number | null
+          avg_response_time_minutes: number | null
+          created_at: string | null
+          escalated: number | null
+          id: string
+          metric_date: string
+          request_types_breakdown: Json | null
+          sla_breaches: number | null
+          team_performance: Json | null
+          total_emails: number | null
+        }
+        Insert: {
+          auto_classified?: number | null
+          auto_replied?: number | null
+          avg_response_time_minutes?: number | null
+          created_at?: string | null
+          escalated?: number | null
+          id?: string
+          metric_date: string
+          request_types_breakdown?: Json | null
+          sla_breaches?: number | null
+          team_performance?: Json | null
+          total_emails?: number | null
+        }
+        Update: {
+          auto_classified?: number | null
+          auto_replied?: number | null
+          avg_response_time_minutes?: number | null
+          created_at?: string | null
+          escalated?: number | null
+          id?: string
+          metric_date?: string
+          request_types_breakdown?: Json | null
+          sla_breaches?: number | null
+          team_performance?: Json | null
+          total_emails?: number | null
+        }
+        Relationships: []
+      }
+      auto_replies: {
+        Row: {
+          email_id: string | null
+          id: string
+          recipient: string
+          reply_text: string
+          sent_at: string | null
+        }
+        Insert: {
+          email_id?: string | null
+          id?: string
+          recipient: string
+          reply_text: string
+          sent_at?: string | null
+        }
+        Update: {
+          email_id?: string | null
+          id?: string
+          recipient?: string
+          reply_text?: string
+          sent_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "auto_replies_email_id_fkey"
+            columns: ["email_id"]
+            isOneToOne: false
+            referencedRelation: "emails"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       daily_summaries: {
         Row: {
           completed_tasks_count: number | null
@@ -49,6 +123,60 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      email_classifications: {
+        Row: {
+          auto_reply_sent: boolean | null
+          classified_at: string | null
+          confidence_score: number | null
+          email_id: string | null
+          escalated: boolean | null
+          escalation_time: string | null
+          id: string
+          request_type_id: string | null
+          routing_team: string | null
+          urgency_level: string | null
+        }
+        Insert: {
+          auto_reply_sent?: boolean | null
+          classified_at?: string | null
+          confidence_score?: number | null
+          email_id?: string | null
+          escalated?: boolean | null
+          escalation_time?: string | null
+          id?: string
+          request_type_id?: string | null
+          routing_team?: string | null
+          urgency_level?: string | null
+        }
+        Update: {
+          auto_reply_sent?: boolean | null
+          classified_at?: string | null
+          confidence_score?: number | null
+          email_id?: string | null
+          escalated?: boolean | null
+          escalation_time?: string | null
+          id?: string
+          request_type_id?: string | null
+          routing_team?: string | null
+          urgency_level?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_classifications_email_id_fkey"
+            columns: ["email_id"]
+            isOneToOne: false
+            referencedRelation: "emails"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_classifications_request_type_id_fkey"
+            columns: ["request_type_id"]
+            isOneToOne: false
+            referencedRelation: "request_types"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       emails: {
         Row: {
@@ -95,6 +223,54 @@ export type Database = {
         }
         Relationships: []
       }
+      escalations: {
+        Row: {
+          email_id: string | null
+          escalated_at: string | null
+          escalated_to: string | null
+          id: string
+          reason: string
+          resolved: boolean | null
+          resolved_at: string | null
+          team_assignment_id: string | null
+        }
+        Insert: {
+          email_id?: string | null
+          escalated_at?: string | null
+          escalated_to?: string | null
+          id?: string
+          reason: string
+          resolved?: boolean | null
+          resolved_at?: string | null
+          team_assignment_id?: string | null
+        }
+        Update: {
+          email_id?: string | null
+          escalated_at?: string | null
+          escalated_to?: string | null
+          id?: string
+          reason?: string
+          resolved?: boolean | null
+          resolved_at?: string | null
+          team_assignment_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "escalations_email_id_fkey"
+            columns: ["email_id"]
+            isOneToOne: false
+            referencedRelation: "emails"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "escalations_team_assignment_id_fkey"
+            columns: ["team_assignment_id"]
+            isOneToOne: false
+            referencedRelation: "team_assignments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       meetings: {
         Row: {
           attendees: Json | null
@@ -134,6 +310,42 @@ export type Database = {
           title?: string
           updated_at?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      request_types: {
+        Row: {
+          auto_reply_template: string | null
+          category: string
+          created_at: string | null
+          escalation_rules: Json | null
+          id: string
+          keywords: string[] | null
+          name: string
+          routing_team: string | null
+          sla_hours: number | null
+        }
+        Insert: {
+          auto_reply_template?: string | null
+          category: string
+          created_at?: string | null
+          escalation_rules?: Json | null
+          id?: string
+          keywords?: string[] | null
+          name: string
+          routing_team?: string | null
+          sla_hours?: number | null
+        }
+        Update: {
+          auto_reply_template?: string | null
+          category?: string
+          created_at?: string | null
+          escalation_rules?: Json | null
+          id?: string
+          keywords?: string[] | null
+          name?: string
+          routing_team?: string | null
+          sla_hours?: number | null
         }
         Relationships: []
       }
@@ -180,6 +392,53 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "tasks_email_id_fkey"
+            columns: ["email_id"]
+            isOneToOne: false
+            referencedRelation: "emails"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_assignments: {
+        Row: {
+          acknowledged: boolean | null
+          acknowledged_at: string | null
+          assigned_at: string | null
+          email_id: string | null
+          id: string
+          notes: string | null
+          resolved: boolean | null
+          resolved_at: string | null
+          response_time_minutes: number | null
+          team_name: string
+        }
+        Insert: {
+          acknowledged?: boolean | null
+          acknowledged_at?: string | null
+          assigned_at?: string | null
+          email_id?: string | null
+          id?: string
+          notes?: string | null
+          resolved?: boolean | null
+          resolved_at?: string | null
+          response_time_minutes?: number | null
+          team_name: string
+        }
+        Update: {
+          acknowledged?: boolean | null
+          acknowledged_at?: string | null
+          assigned_at?: string | null
+          email_id?: string | null
+          id?: string
+          notes?: string | null
+          resolved?: boolean | null
+          resolved_at?: string | null
+          response_time_minutes?: number | null
+          team_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_assignments_email_id_fkey"
             columns: ["email_id"]
             isOneToOne: false
             referencedRelation: "emails"
