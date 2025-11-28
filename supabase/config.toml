@@ -1,1 +1,22 @@
 project_id = "jjsdaubedeyuuywilvjt"
+
+[functions.fetch-emails]
+verify_jwt = true
+
+[functions.classify-email]
+verify_jwt = false
+
+[functions.send-auto-reply]
+verify_jwt = false
+
+[functions.check-escalations]
+verify_jwt = false
+
+[functions.generate-analytics]
+verify_jwt = false
+
+[functions.microsoft-oauth-callback]
+verify_jwt = false
+
+[functions.generate-ba-document]
+verify_jwt = true
