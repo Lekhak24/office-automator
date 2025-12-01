@@ -10,18 +10,36 @@ const RequestRouter = () => {
   const { data: assignments, isLoading } = useQuery({
     queryKey: ["team-assignments"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // First get team assignments with emails
+      const { data: assignmentsData, error } = await supabase
         .from("team_assignments")
         .select(`
           *,
-          emails!inner(subject, sender, received_at),
-          email_classifications(urgency_level, auto_reply_sent)
+          emails(id, subject, sender, received_at)
         `)
         .order("assigned_at", { ascending: false })
         .limit(50);
 
       if (error) throw error;
-      return data;
+      if (!assignmentsData) return [];
+
+      // Get classifications for these emails
+      const emailIds = assignmentsData.map(a => a.email_id).filter(Boolean);
+      
+      if (emailIds.length > 0) {
+        const { data: classifications } = await supabase
+          .from("email_classifications")
+          .select("email_id, urgency_level, auto_reply_sent")
+          .in("email_id", emailIds);
+
+        // Merge classifications into assignments
+        return assignmentsData.map(assignment => ({
+          ...assignment,
+          classification: classifications?.find(c => c.email_id === assignment.email_id) || null
+        }));
+      }
+
+      return assignmentsData;
     },
     refetchInterval: 30000,
   });
@@ -71,8 +89,8 @@ const RequestRouter = () => {
           {unresolvedAssignments.map((assignment: any) => {
             const assignedAt = new Date(assignment.assigned_at);
             const hoursElapsed = Math.floor((Date.now() - assignedAt.getTime()) / (1000 * 60 * 60));
-            const urgencyLevel = assignment.email_classifications?.[0]?.urgency_level || "medium";
-            const autoReplySent = assignment.email_classifications?.[0]?.auto_reply_sent || false;
+            const urgencyLevel = assignment.classification?.urgency_level || "medium";
+            const autoReplySent = assignment.classification?.auto_reply_sent || false;
 
             return (
               <Card
@@ -88,8 +106,8 @@ const RequestRouter = () => {
                 <CardHeader>
                   <div className="flex justify-between items-start">
                     <div className="space-y-1 flex-1">
-                      <CardTitle className="text-base">{assignment.emails.subject}</CardTitle>
-                      <CardDescription>From: {assignment.emails.sender}</CardDescription>
+                      <CardTitle className="text-base">{assignment.emails?.subject || "No Subject"}</CardTitle>
+                      <CardDescription>From: {assignment.emails?.sender || "Unknown"}</CardDescription>
                     </div>
                     <div className="flex gap-2">
                       <Badge
@@ -150,9 +168,9 @@ const RequestRouter = () => {
                 <CardHeader className="pb-3">
                   <div className="flex justify-between items-start">
                     <div className="space-y-1 flex-1">
-                      <CardTitle className="text-sm">{assignment.emails.subject}</CardTitle>
+                      <CardTitle className="text-sm">{assignment.emails?.subject || "No Subject"}</CardTitle>
                       <CardDescription className="text-xs">
-                        {assignment.team_name} • Resolved {format(new Date(assignment.resolved_at), "PPp")}
+                        {assignment.team_name} • Resolved {assignment.resolved_at ? format(new Date(assignment.resolved_at), "PPp") : "N/A"}
                       </CardDescription>
                     </div>
                     {assignment.response_time_minutes && (
