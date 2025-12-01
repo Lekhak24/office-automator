@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Loader2, LogOut, Mail, CheckSquare, Calendar, FileText, Settings, 
-  BarChart, GitBranch, AlertCircle, Sparkles, Zap
+  BarChart, GitBranch, AlertCircle, Sparkles, Zap, MessageSquare
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import EmailSummaries from "@/components/dashboard/EmailSummaries";
@@ -17,6 +17,7 @@ import AnalyticsDashboard from "@/components/dashboard/AnalyticsDashboard";
 import RequestRouter from "@/components/dashboard/RequestRouter";
 import EscalationMonitor from "@/components/dashboard/EscalationMonitor";
 import BADocumentGenerator from "@/components/dashboard/BADocumentGenerator";
+import AICopilot from "@/components/dashboard/AICopilot";
 
 const Dashboard = () => {
   const [user, setUser] = useState<any>(null);
@@ -136,6 +137,10 @@ const Dashboard = () => {
               <FileText className="h-4 w-4" />
               <span className="hidden sm:inline">Summary</span>
             </TabsTrigger>
+            <TabsTrigger value="copilot" className="gap-2 data-[state=active]:shadow-sm">
+              <MessageSquare className="h-4 w-4" />
+              <span className="hidden sm:inline">Copilot</span>
+            </TabsTrigger>
             <TabsTrigger value="settings" className="gap-2 data-[state=active]:shadow-sm">
               <Settings className="h-4 w-4" />
               <span className="hidden sm:inline">Settings</span>
@@ -173,6 +178,10 @@ const Dashboard = () => {
 
             <TabsContent value="summary" className="space-y-4 mt-0">
               <DailySummary userId={user?.id} />
+            </TabsContent>
+
+            <TabsContent value="copilot" className="space-y-4 mt-0">
+              <AICopilot userId={user?.id} />
             </TabsContent>
 
             <TabsContent value="settings" className="space-y-4 mt-0">
