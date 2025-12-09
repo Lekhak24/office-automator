@@ -10,7 +10,7 @@ import { Play, RefreshCw, Settings2, Clock, Zap, CheckCircle2 } from "lucide-rea
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
-import MicrosoftConnect from "./MicrosoftConnect";
+import GoogleConnect from "./GoogleConnect";
 
 interface SettingsPanelProps {
   userId: string;
@@ -96,8 +96,8 @@ const SettingsPanel = ({ userId }: SettingsPanelProps) => {
       </Alert>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Microsoft Connection */}
-        <MicrosoftConnect userId={userId} />
+        {/* Google Connection */}
+        <GoogleConnect userId={userId} />
 
         {/* Automation Control */}
         <Card className="border-2 border-primary/20 overflow-hidden">
