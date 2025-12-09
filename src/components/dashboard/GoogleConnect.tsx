@@ -45,11 +45,13 @@ const GoogleConnect = ({ userId, userEmail }: GoogleConnectProps) => {
   const checkConnectionStatus = async () => {
     const { data } = await supabase
       .from("user_settings")
-      .select("google_access_token, email_sync_enabled")
+      .select("*")
       .eq("user_id", userId)
-      .single();
+      .maybeSingle();
 
-    if (data?.google_access_token && data?.email_sync_enabled) {
+    // Type assertion since new columns aren't in generated types yet
+    const settings = data as { google_access_token?: string; email_sync_enabled?: boolean } | null;
+    if (settings?.google_access_token && settings?.email_sync_enabled) {
       setIsConnected(true);
     }
   };
