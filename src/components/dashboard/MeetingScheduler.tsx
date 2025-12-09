@@ -4,8 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Calendar, Clock, Users, ExternalLink } from "lucide-react";
-import { format, isFuture, isPast, isToday } from "date-fns";
+import { Calendar, Clock, Users, ExternalLink, Video, PlayCircle } from "lucide-react";
+import { format, isFuture, isPast, isToday, differenceInMinutes } from "date-fns";
 
 interface MeetingSchedulerProps {
   userId: string;
@@ -46,7 +46,7 @@ const MeetingScheduler = ({ userId }: MeetingSchedulerProps) => {
         <CardContent>
           <Calendar className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
           <p className="text-muted-foreground">
-            No meetings scheduled. Connect your calendar in Settings.
+            No meetings scheduled. Sync your Gmail to detect meeting invites automatically.
           </p>
         </CardContent>
       </Card>
@@ -55,6 +55,17 @@ const MeetingScheduler = ({ userId }: MeetingSchedulerProps) => {
 
   const upcomingMeetings = meetings.filter((m) => isFuture(new Date(m.start_time)));
   const pastMeetings = meetings.filter((m) => isPast(new Date(m.start_time)));
+
+  const getMeetingType = (attendees: any): string | null => {
+    if (!attendees) return null;
+    if (typeof attendees === 'object' && attendees.type) return attendees.type;
+    return null;
+  };
+
+  const isStartingSoon = (startTime: Date): boolean => {
+    const minutesUntilStart = differenceInMinutes(startTime, new Date());
+    return minutesUntilStart >= 0 && minutesUntilStart <= 15;
+  };
 
   return (
     <div className="space-y-6">
@@ -65,13 +76,23 @@ const MeetingScheduler = ({ userId }: MeetingSchedulerProps) => {
             const startTime = new Date(meeting.start_time);
             const endTime = new Date(meeting.end_time);
             const isHappeningToday = isToday(startTime);
+            const startingSoon = isStartingSoon(startTime);
+            const meetingType = getMeetingType(meeting.attendees);
 
             return (
-              <Card key={meeting.id} className={isHappeningToday ? "border-primary" : ""}>
+              <Card key={meeting.id} className={`transition-all ${startingSoon ? "border-green-500 border-2 shadow-lg shadow-green-500/20" : isHappeningToday ? "border-primary" : ""}`}>
                 <CardHeader>
                   <div className="flex justify-between items-start">
                     <div className="space-y-1 flex-1">
-                      <CardTitle className="text-lg">{meeting.title}</CardTitle>
+                      <div className="flex items-center gap-2">
+                        <CardTitle className="text-lg">{meeting.title}</CardTitle>
+                        {meetingType && (
+                          <Badge variant="outline" className="text-xs">
+                            <Video className="h-3 w-3 mr-1" />
+                            {meetingType}
+                          </Badge>
+                        )}
+                      </div>
                       <CardDescription className="flex items-center gap-4 flex-wrap">
                         <span className="flex items-center gap-1">
                           <Calendar className="h-3 w-3" />
@@ -81,27 +102,48 @@ const MeetingScheduler = ({ userId }: MeetingSchedulerProps) => {
                           <Clock className="h-3 w-3" />
                           {format(startTime, "p")} - {format(endTime, "p")}
                         </span>
-                        {meeting.attendees && (
+                        {meeting.attendees && typeof meeting.attendees === 'object' && (meeting.attendees as any).source && (
                           <span className="flex items-center gap-1">
                             <Users className="h-3 w-3" />
-                            {(meeting.attendees as any[]).length} attendees
+                            From: {(meeting.attendees as any).source}
                           </span>
                         )}
                       </CardDescription>
                     </div>
-                    {isHappeningToday && (
-                      <Badge variant="default" className="ml-2">
-                        Today
-                      </Badge>
-                    )}
+                    <div className="flex gap-2">
+                      {startingSoon && (
+                        <Badge variant="default" className="bg-green-500 animate-pulse">
+                          Starting Soon!
+                        </Badge>
+                      )}
+                      {isHappeningToday && !startingSoon && (
+                        <Badge variant="default">
+                          Today
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                 </CardHeader>
                 {meeting.join_url && (
-                  <CardContent>
-                    <Button asChild variant="outline" size="sm">
+                  <CardContent className="pt-0">
+                    <Button 
+                      asChild 
+                      variant={startingSoon ? "default" : "outline"} 
+                      size={startingSoon ? "lg" : "sm"}
+                      className={startingSoon ? "bg-green-600 hover:bg-green-700 gap-2 w-full sm:w-auto" : "gap-2"}
+                    >
                       <a href={meeting.join_url} target="_blank" rel="noopener noreferrer">
-                        <ExternalLink className="mr-2 h-4 w-4" />
-                        Join Meeting
+                        {startingSoon ? (
+                          <>
+                            <PlayCircle className="h-5 w-5" />
+                            Join Now
+                          </>
+                        ) : (
+                          <>
+                            <ExternalLink className="h-4 w-4" />
+                            Join Meeting
+                          </>
+                        )}
                       </a>
                     </Button>
                   </CardContent>

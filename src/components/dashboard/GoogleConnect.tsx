@@ -172,9 +172,14 @@ const GoogleConnect = ({ userId, userEmail }: GoogleConnectProps) => {
         throw new Error(result.error || "Failed to fetch emails");
       }
 
+      const messages = [];
+      if (result.stored > 0) messages.push(`${result.stored} new emails processed`);
+      if (result.tasksCreated > 0) messages.push(`${result.tasksCreated} tasks created`);
+      if (result.meetingsCreated > 0) messages.push(`${result.meetingsCreated} meetings detected`);
+      
       toast({
-        title: "Emails synced!",
-        description: `Fetched ${result.fetched} emails, stored ${result.stored} new ones.`,
+        title: "Emails synced successfully!",
+        description: messages.length > 0 ? messages.join(", ") : `Checked ${result.fetched} emails, no new ones found.`,
       });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
