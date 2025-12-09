@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Mail, Loader2, Check, RefreshCw } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Mail, Loader2, Check, RefreshCw, Copy, ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -14,7 +15,23 @@ const GoogleConnect = ({ userId, userEmail }: GoogleConnectProps) => {
   const [isConnecting, setIsConnecting] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [isFetching, setIsFetching] = useState(false);
+  const [showManualFlow, setShowManualFlow] = useState(false);
+  const [authCode, setAuthCode] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+
+  const clientId = "207591132098-ikj5llsls140c9tlkter4l6urdnm3jd9.apps.googleusercontent.com";
+  const redirectUri = "https://jjsdaubedeyuuywilvjt.supabase.co/functions/v1/google-oauth-callback";
+  const scope = "https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile";
+
+  const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
+    `client_id=${clientId}` +
+    `&response_type=code` +
+    `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+    `&scope=${encodeURIComponent(scope)}` +
+    `&state=${userId}` +
+    `&access_type=offline` +
+    `&prompt=consent`;
 
   useEffect(() => {
     checkConnectionStatus();
@@ -24,6 +41,7 @@ const GoogleConnect = ({ userId, userEmail }: GoogleConnectProps) => {
       if (event.data?.type === 'GOOGLE_AUTH_SUCCESS') {
         setIsConnected(true);
         setIsConnecting(false);
+        setShowManualFlow(false);
         toast({
           title: "Connected!",
           description: "Your Google account is now connected.",
@@ -49,9 +67,8 @@ const GoogleConnect = ({ userId, userEmail }: GoogleConnectProps) => {
       .eq("user_id", userId)
       .maybeSingle();
 
-    // Type assertion since new columns aren't in generated types yet
     const settings = data as { google_access_token?: string; email_sync_enabled?: boolean } | null;
-    if (settings?.google_access_token && settings?.email_sync_enabled) {
+    if (settings?.google_access_token) {
       setIsConnected(true);
     }
   };
@@ -59,19 +76,6 @@ const GoogleConnect = ({ userId, userEmail }: GoogleConnectProps) => {
   const handleConnect = () => {
     setIsConnecting(true);
     
-    const clientId = "207591132098-ikj5llsls140c9tlkter4l6urdnm3jd9.apps.googleusercontent.com";
-    const redirectUri = "https://jjsdaubedeyuuywilvjt.supabase.co/functions/v1/google-oauth-callback";
-    const scope = "https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile";
-    
-    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
-      `client_id=${clientId}` +
-      `&response_type=code` +
-      `&redirect_uri=${encodeURIComponent(redirectUri)}` +
-      `&scope=${encodeURIComponent(scope)}` +
-      `&state=${userId}` +
-      `&access_type=offline` +
-      `&prompt=consent`;
-
     // Open OAuth popup
     const popup = window.open(authUrl, 'Google OAuth', 'width=600,height=700');
     
@@ -79,10 +83,11 @@ const GoogleConnect = ({ userId, userEmail }: GoogleConnectProps) => {
     if (!popup) {
       toast({
         title: "Popup blocked",
-        description: "Please allow popups to connect your Google account",
+        description: "Please use the manual connection method below",
         variant: "destructive",
       });
       setIsConnecting(false);
+      setShowManualFlow(true);
       return;
     }
 
@@ -96,13 +101,62 @@ const GoogleConnect = ({ userId, userEmail }: GoogleConnectProps) => {
     }, 500);
   };
 
+  const copyAuthUrl = () => {
+    navigator.clipboard.writeText(authUrl);
+    toast({
+      title: "URL Copied!",
+      description: "Open this URL in a browser where Google is not blocked",
+    });
+  };
+
+  const handleManualSubmit = async () => {
+    if (!authCode.trim()) {
+      toast({
+        title: "Missing code",
+        description: "Please paste the authorization code",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      // Call the OAuth callback with the code
+      const response = await fetch(
+        `https://jjsdaubedeyuuywilvjt.supabase.co/functions/v1/google-oauth-callback?code=${encodeURIComponent(authCode.trim())}&state=${userId}`,
+        { method: "GET" }
+      );
+
+      if (response.ok) {
+        setIsConnected(true);
+        setShowManualFlow(false);
+        setAuthCode("");
+        toast({
+          title: "Connected!",
+          description: "Your Google account is now connected.",
+        });
+      } else {
+        throw new Error("Failed to exchange authorization code");
+      }
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      toast({
+        title: "Connection failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleFetchEmails = async () => {
     setIsFetching(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fetch-gmail`,
+        `https://jjsdaubedeyuuywilvjt.supabase.co/functions/v1/fetch-gmail`,
         {
           method: "POST",
           headers: {
@@ -174,10 +228,60 @@ const GoogleConnect = ({ userId, userEmail }: GoogleConnectProps) => {
                   </>
                 )}
               </Button>
-              <p className="text-xs text-muted-foreground text-center">
-                Click to fetch new emails from your Gmail inbox
-              </p>
             </>
+          ) : showManualFlow ? (
+            <div className="space-y-4">
+              <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                <p className="text-sm font-medium text-amber-700 mb-2">Manual Connection Steps:</p>
+                <ol className="text-xs text-amber-600 space-y-1 list-decimal list-inside">
+                  <li>Copy the auth URL below</li>
+                  <li>Open it in a browser where Google is NOT blocked (home/mobile)</li>
+                  <li>Sign in with your Google account</li>
+                  <li>After redirect, copy the "code" from the URL bar</li>
+                  <li>Paste it below and click Submit</li>
+                </ol>
+              </div>
+              
+              <div className="flex gap-2">
+                <Button onClick={copyAuthUrl} variant="outline" className="flex-1">
+                  <Copy className="w-4 h-4 mr-2" />
+                  Copy Auth URL
+                </Button>
+                <Button onClick={() => window.open(authUrl, '_blank')} variant="outline">
+                  <ExternalLink className="w-4 h-4" />
+                </Button>
+              </div>
+
+              <div className="space-y-2">
+                <Input
+                  placeholder="Paste authorization code here..."
+                  value={authCode}
+                  onChange={(e) => setAuthCode(e.target.value)}
+                />
+                <Button 
+                  onClick={handleManualSubmit} 
+                  disabled={isSubmitting}
+                  className="w-full"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Connecting...
+                    </>
+                  ) : (
+                    "Submit Code"
+                  )}
+                </Button>
+              </div>
+
+              <Button 
+                variant="ghost" 
+                onClick={() => setShowManualFlow(false)}
+                className="w-full text-muted-foreground"
+              >
+                Back to automatic connection
+              </Button>
+            </div>
           ) : (
             <>
               <Button 
@@ -198,8 +302,15 @@ const GoogleConnect = ({ userId, userEmail }: GoogleConnectProps) => {
                   </>
                 )}
               </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => setShowManualFlow(true)}
+                className="w-full"
+              >
+                Network blocked? Use manual connection
+              </Button>
               <p className="text-xs text-muted-foreground text-center">
-                Grant permission to read and sync your Gmail emails
+                If Google is blocked on your network, use manual connection
               </p>
             </>
           )}
